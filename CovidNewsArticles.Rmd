@@ -1,0 +1,106 @@
+---
+title: "Untitled"
+author: "Max Klevgard"
+date: "6/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(SentimentAnalysis)
+library(ggplot2)
+library(dplyr)
+library(plyr)
+library(readr)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+fox <- read_csv("/Users/maxklevgard/Documents/STOR320_summer/Project/foxnews.csv")
+fox2 <- select(fox, Title, eyebrow, time, dek) %>% rename(Category = eyebrow, Date=time, Tagline=dek)
+fox2$City <- "national"
+fox2$day <- 1
+fox2$month <- 1
+fox2$num <- as.numeric(sapply(strsplit(fox2$Date, " "), "[[", 1))
+
+fox2$year <- ifelse(grepl("year",fox2$Date, fixed = TRUE), 2020 - fox2$num, 2020)
+
+fox2$month <- ifelse(grepl("month",fox2$Date, fixed = TRUE), 7 - fox2$num, 1)
+fox2$year <- ifelse(fox2$month < 0, 2019, fox2$year)
+fox2$month <- ifelse(fox2$month < 0, 12 + fox2$month, fox2$month)
+
+fox2$day <- ifelse(grepl("day",fox2$Date, fixed = TRUE), 31 - fox2$num, 1)
+fox2$month <- ifelse(grepl("day",fox2$Date, fixed = TRUE), 6, fox2$month)
+
+
+
+
+fox2$Author <- NA
+fox2$Publication <- "Fox News"
+fox.final <- select(fox2, Publication, Title, Tagline, Author, Category, City, day:year)
+
+fox.final
+```
+
+
+```{r}
+sentiment <- analyzeSentiment(fox.final$Title)
+score <- convertToDirection(sentiment$SentimentQDAP)
+```
+
+```{r}
+fox.final$sentiment <- sentiment
+fox.final$SS <- NA
+fox.final$SS <- ifelse(score == 'positive', 1, fox.final$SS)
+fox.final$SS <- ifelse(score == 'negative', -1, fox.final$SS)
+fox.final$SS <- ifelse(score == 'neutral', 0, fox.final$SS)
+View(fox.final)
+```
+
+
+
+```{r}
+head(fox.final)
+write.csv(fox.final, 'foxfinal.csv')
+```
+
+##LOAD ALL CORONAVIRUS DATASETS TOGETHER
+
+```{r}
+setwd("/Users/maxklevgard/Documents/STOR320_summer/Project")
+mydir = "csse_covid_19_daily_reports"
+myfiles = list.files(path = mydir, pattern="*.csv", full.names=TRUE)
+for (f in myfiles) {
+  temp <- read_csv(f)
+  temp$Date <- substr(f, 29, 38)
+  write.csv(temp, f)
+}
+  
+
+
+```
+
+
+```{r}
+setwd("/Users/maxklevgard/Documents/STOR320_summer/Project")
+mydir = "csse_covid_19_daily_reports"
+myfiles = list.files(path = mydir, pattern="*.csv", full.names=TRUE)
+county_covid = ldply(myfiles, read_csv)
+county_covid 
+```
+
+
+```{r}
+county_covid <- filter(county_covid, Country_Region == 'US')
+county_covid %>% arrange(desc(Date))
+```
+
+
+
+
+

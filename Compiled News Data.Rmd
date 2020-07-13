@@ -1,0 +1,181 @@
+---
+title: "Compiled News Data"
+author: "Max Klevgard"
+date: "7/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lubridate)
+library(SentimentAnalysis)
+library(ggplot2)
+library(dplyr)
+library(plyr)
+library(readr)
+library(stringr)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+## Compile All News Datasets
+
+```{r message=F}
+#setwd("/Users/maxklevgard/Documents/STOR320_summer/Project")
+a <- read_csv("foxfinal.csv")
+b <- read_csv("msnbcfinal.csv")
+c <- read_csv("nytfinal.csv")
+d <- read_csv("heraldfinal.csv")
+e <- read_csv("sunfinal.csv")
+f <- read_csv("wsvnfinal.csv")
+g <- read_csv("foxlafinal.csv")
+h <- read_csv("ladailyfinal.csv")
+i <- read_csv("latimesfinal.csv")
+
+```
+
+
+##The Dates that are in Datetime are Fox, Fox LA, and NYT
+
+##Dates in character form are Sun Sentinel, Miami Herald, and Miami 7 WSVN
+
+##Date that is messed up is MSNBC
+
+
+
+#Fox news is done
+```{r}
+
+a <- select(a, X1, Publication:year)
+a$Date <- as.Date(with(a, paste(year, month, day,sep="-")), "%Y-%m-%d")
+a <- select(a, X1:City, Date)
+```
+
+```{r}
+a
+```
+
+
+#MSNBC
+```{r}
+b <- read_csv("msnbcfinal.csv")
+b <- select(b, X1:Date)
+b
+#df <- rbind(a, b)
+#df
+```
+
+```{r}
+hold <- str_remove_all(b$Date, "AM")
+hold <- str_remove_all(hold, "PM")
+b$Date2 <- hold
+
+v <- b
+v$Date <- format(as.POSIXct(b$Date,format='%m/%d/%Y %H:%M'),format="2020-%m-%d")
+v$Date2 <- format(as.POSIXct(b$Date2,format='%H:%M %m/%d/%Y'),format="%Y-%m-%d")
+
+v[is.na(v)] <- ""
+v$Date <- paste(v$Date, "", v$Date2)
+b <- select(v, X1:Date)
+b
+
+```
+
+
+
+#NYT
+```{r}
+c$Date <- as.Date(with(c, paste(year, month, day,sep="-")), "%Y-%m-%d")
+c <- select(c, X1:Date)
+c
+```
+
+##Create function for month day, year format
+
+```{r eval=FALSE}
+
+createDate.func() = function(dates) {
+  
+  for (i in 1:nrow(dates)) {
+    mm <- substr(dates[i,], 1,3)
+    tst <- substr(foxla.final$Date, 1, 3)
+    tstm <- match(tst,month.abb)
+    foxla$month <- tstm
+    
+  }
+  
+}
+
+```
+
+
+#Herald
+```{r}
+d <- read_csv("heraldfinal.csv")
+d$Date <- format(as.Date(d$Date, "%B %d, %Y"), "%Y-%m-%d")
+d
+```
+
+#Sun
+
+```{r}
+e$Date <- format(as.Date(e$Date, "%B %d, %Y"), "%Y-%m-%d")
+e
+```
+
+#WSVN
+
+```{r}
+f$Date <- format(as.Date(f$Date, "%B %d, %Y"), "%Y-%m-%d")
+f
+```
+
+#Fox LA
+
+```{r}
+
+g$Date <- as.Date(with(g, paste(year, month, day,sep="-")), "%Y-%m-%d")
+g <- select(g, X1:Date)
+g
+
+```
+
+#LA Daily
+
+```{r}
+h$Date <- format(as.Date(h$Date, "%B %d, %Y"), "%Y-%m-%d")
+h
+```
+
+
+#LA Times
+
+```{r}
+
+i$Date <- format(as.Date(i$Date, "%B %d, %Y"), "%Y-%m-%d")
+i
+
+
+```
+
+
+## Merged Data
+
+```{r}
+news.final <- rbind(a,b,c,d,e,f,g,h,i)
+View(news.final)
+```
+
+
+
+
+
+
+
+
+
+

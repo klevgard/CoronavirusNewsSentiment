@@ -1,0 +1,147 @@
+---
+title: "Mask Data"
+author: "Max Klevgard"
+date: "7/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+##Fox News search "Coronavirus Mask"
+```{r}
+fox <- read_csv("/Users/maxklevgard/Documents/STOR320_summer/Project/foxmask.csv")
+fox2 <- select(fox, Title, eyebrow, time, dek)
+names(fox2)[names(fox2) == "eyebrow"] <- "Category"
+names(fox2)[names(fox2) == "dek"] <- "Tagline"
+names(fox2)[names(fox2) == "time"] <- "Date"
+
+fox2$City <- "national"
+fox2$day <- 1
+fox2$month <- 1
+fox2$num <- as.numeric(sapply(strsplit(fox2$Date, " "), "[[", 1))
+
+fox2$year <- ifelse(grepl("year",fox2$Date, fixed = TRUE), 2020 - fox2$num, 2020)
+
+fox2$month <- ifelse(grepl("month",fox2$Date, fixed = TRUE), 7 - fox2$num, 1)
+fox2$year <- ifelse(fox2$month < 0, 2019, fox2$year)
+fox2$month <- ifelse(fox2$month < 0, 12 + fox2$month, fox2$month)
+
+fox2$day <- ifelse(grepl("day",fox2$Date, fixed = TRUE), 31 - fox2$num, 1)
+fox2$month <- ifelse(grepl("day",fox2$Date, fixed = TRUE), 6, fox2$month)
+
+
+
+
+fox2$Author <- NA
+fox2$Publication <- "Fox News"
+foxmask.final <- select(fox2, Publication, Title, Tagline, Author, Category, City, day:year)
+
+
+head(foxmask.final, 12)
+
+foxmask.final
+```
+
+
+```{r}
+foxmask.final$Date <- as.Date(with(foxmask.final, paste(year, month, day,sep="-")), "%Y-%m-%d")
+head(foxmask.final, 50)
+foxmask.final
+```
+
+
+```{r}
+foxmask.final$X1 <- seq.int(nrow(foxmask.final))
+
+foxmask.final <- select(foxmask.final, X1, Publication:year)
+foxmask.final$Date <- as.Date(with(foxmask.final, paste(year, month, day,sep="-")), "%Y-%m-%d")
+foxmask.final <- select(foxmask.final, X1:City, Date)
+foxmask.final
+```
+
+
+##MSNBC on Masks
+
+```{r}
+msnbcmask <- read_csv("/Users/maxklevgard/Documents/STOR320_summer/Project/msnbcmask.csv")
+msnbcmask
+msnbcmask <- msnbcmask %>% select(Title, Tagline, Date, explore) 
+head(msnbcmask)
+names(msnbcmask)[names(msnbcmask) == "explore"] <- "Category"
+#msnbcmask <- colnames(msnbcmask, c("Title","Tagline","Date","Category"))
+msnbcmask$City <- "national"
+msnbcmask$Publication <- "MSNBC"
+msnbcmask$Author <- NA
+msnbcmask.final <- select(msnbcmask, Publication, Title, Tagline, Author, Category, City, Date)
+head(msnbcmask.final, 100)
+```
+
+We want to add Author information to its column if it's available in Date
+
+
+```{r}
+
+msnbcmask.final$Date <- as.character(msnbcmask.final$Date)
+df <- data.frame(data.frame(matrix(NA, nrow = nrow(msnbcmask.final), ncol = 2)))
+names(df)[1] <- "Date"
+names(df)[2] <- "Auth"
+AUTHOR.func = function(r, n) {
+  
+  if (str_detect(r, "-")) {
+    temp = strsplit(r, "-")
+    df[n,]$Date <- as.character(temp[[1]][2])
+    df[n,]$Auth <- as.character(temp[[1]][1])
+  }
+  else {
+    df[n,]$Date <- r
+    df[n,]$Auth <- NA
+  }
+  return(df)
+  
+}
+
+msnbcmask.final1 <- msnbcmask.final
+n <- 1
+for (r in msnbcmask.final$Date) {
+  df <- AUTHOR.func(r, n)
+  n <- n + 1
+}
+msnbcmask.final$Date <- df$Date
+msnbcmask.final$Author <- df$Auth
+
+```
+
+```{r}
+head(msnbcmask.final)
+```
+
+
+```{r}
+msnbcmask.final$X1 <- seq.int(nrow(msnbcmask.final))
+hold <- str_remove_all(msnbcmask.final$Date, "AM")
+hold <- str_remove_all(hold, "PM")
+msnbcmask.final$Date2 <- hold
+
+v <- msnbcmask.final
+v$Date <- format(as.POSIXct(msnbcmask.final$Date,format='%m/%d/%Y %H:%M'),format="2020-%m-%d")
+v$Date2 <- format(as.POSIXct(msnbcmask.final$Date2,format='%H:%M %m/%d/%Y'),format="%Y-%m-%d")
+
+foxla["month"] <- sapply(foxla["month"],as.numeric)
+
+v[is.na(v)] <- ""
+v$Date <- paste(v$Date, "", v$Date2)
+msnbcmask.final <- select(v, X1, Publication, Title, Tagline, Author, Category, City, Date)
+msnbcmask.final
+```
+
+
+##Write Csvs
+```{r}
+
+write_csv(foxmask.final, "/Users/maxklevgard/Documents/STOR320_summer/Project/foxmaskfinal.csv")
+write_csv(msnbcmask.final, "/Users/maxklevgard/Documents/STOR320_summer/Project/msnbcmaskfinal.csv")
+```
+

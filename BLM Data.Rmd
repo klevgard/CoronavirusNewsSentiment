@@ -1,0 +1,160 @@
+---
+title: "BLM Data"
+author: "Max Klevgard"
+date: "7/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+---
+title: "Mask Data"
+author: "Max Klevgard"
+date: "7/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+##Fox News search "Coronavirus Mask"
+```{r}
+fox <- read_csv("/Users/maxklevgard/Documents/STOR320_summer/Project/foxblm.csv")
+fox2 <- select(fox, Title, eyebrow, time, dek)
+names(fox2)[names(fox2) == "eyebrow"] <- "Category"
+names(fox2)[names(fox2) == "dek"] <- "Tagline"
+names(fox2)[names(fox2) == "time"] <- "Date"
+
+fox2$City <- "national"
+fox2$day <- 1
+fox2$month <- 1
+fox2$num <- as.numeric(sapply(strsplit(fox2$Date, " "), "[[", 1))
+
+fox2$year <- ifelse(grepl("year",fox2$Date, fixed = TRUE), 2020 - fox2$num, 2020)
+
+fox2$month <- ifelse(grepl("month",fox2$Date, fixed = TRUE), 7 - fox2$num, 1)
+fox2$year <- ifelse(fox2$month < 0, 2019, fox2$year)
+fox2$month <- ifelse(fox2$month < 0, 12 + fox2$month, fox2$month)
+
+fox2$day <- ifelse(grepl("day",fox2$Date, fixed = TRUE), 31 - fox2$num, 1)
+fox2$month <- ifelse(grepl("day",fox2$Date, fixed = TRUE), 6, fox2$month)
+
+
+
+
+fox2$Author <- NA
+fox2$Publication <- "Fox News"
+foxblm.final <- select(fox2, Publication, Title, Tagline, Author, Category, City, day:year)
+
+
+head(foxblm.final, 12)
+
+foxblm.final
+```
+
+
+```{r}
+foxblm.final$Date <- as.Date(with(foxblm.final, paste(year, month, day,sep="-")), "%Y-%m-%d")
+head(foxblm.final, 50)
+foxblm.final
+```
+
+
+```{r}
+foxblm.final$X1 <- seq.int(nrow(foxblm.final))
+
+foxblm.final <- select(foxblm.final, X1, Publication:year)
+foxblm.final$Date <- as.Date(with(foxblm.final, paste(year, month, day,sep="-")), "%Y-%m-%d")
+foxblm.final <- select(foxblm.final, X1:City, Date)
+foxblm.final
+```
+
+
+##MSNBC on Masks
+
+```{r}
+msnbcblm <- read_csv("/Users/maxklevgard/Documents/STOR320_summer/Project/msnbcblm.csv")
+msnbcblm
+msnbcblm <- msnbcblm %>% select(Title, Tagline, Date, explore) 
+head(msnbcblm)
+names(msnbcblm)[names(msnbcblm) == "explore"] <- "Category"
+#msnbcblm <- colnames(msnbcblm, c("Title","Tagline","Date","Category"))
+msnbcblm$City <- "national"
+msnbcblm$Publication <- "MSNBC"
+msnbcblm$Author <- NA
+msnbcblm.final <- select(msnbcblm, Publication, Title, Tagline, Author, Category, City, Date)
+head(msnbcblm.final, 100)
+```
+
+We want to add Author information to its column if it's available in Date
+
+
+```{r}
+
+msnbcblm.final$Date <- as.character(msnbcblm.final$Date)
+df <- data.frame(data.frame(matrix(NA, nrow = nrow(msnbcblm.final), ncol = 2)))
+names(df)[1] <- "Date"
+names(df)[2] <- "Auth"
+AUTHOR.func = function(r, n) {
+  
+  if (str_detect(r, "-")) {
+    temp = strsplit(r, "-")
+    df[n,]$Date <- as.character(temp[[1]][2])
+    df[n,]$Auth <- as.character(temp[[1]][1])
+  }
+  else {
+    df[n,]$Date <- r
+    df[n,]$Auth <- NA
+  }
+  return(df)
+  
+}
+
+msnbcblm.final1 <- msnbcblm.final
+n <- 1
+for (r in msnbcblm.final$Date) {
+  df <- AUTHOR.func(r, n)
+  n <- n + 1
+}
+msnbcblm.final$Date <- df$Date
+msnbcblm.final$Author <- df$Auth
+
+```
+
+```{r}
+head(msnbcblm.final)
+```
+
+
+```{r}
+msnbcblm.final$X1 <- seq.int(nrow(msnbcblm.final))
+hold <- str_remove_all(msnbcblm.final$Date, "AM")
+hold <- str_remove_all(hold, "PM")
+msnbcblm.final$Date2 <- hold
+
+v <- msnbcblm.final
+v$Date <- format(as.POSIXct(msnbcblm.final$Date,format='%m/%d/%Y %H:%M'),format="2020-%m-%d")
+v$Date2 <- format(as.POSIXct(msnbcblm.final$Date2,format='%H:%M %m/%d/%Y'),format="%Y-%m-%d")
+
+foxla["month"] <- sapply(foxla["month"],as.numeric)
+
+v[is.na(v)] <- ""
+v$Date <- paste(v$Date, "", v$Date2)
+msnbcblm.final <- select(v, X1, Publication, Title, Tagline, Author, Category, City, Date)
+msnbcblm.final
+```
+
+
+##Write Csvs
+```{r}
+
+write_csv(foxblm.final, "/Users/maxklevgard/Documents/STOR320_summer/Project/foxblmfinal.csv")
+write_csv(msnbcblm.final, "/Users/maxklevgard/Documents/STOR320_summer/Project/msnbcblmfinal.csv")
+```
+
